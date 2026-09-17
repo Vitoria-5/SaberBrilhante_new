@@ -1,0 +1,34 @@
+{
+  "name": "Drawing",
+  "type": "object",
+  "properties": {
+    "student_id": {
+      "type": "string",
+      "title": "Aluno"
+    },
+    "student_name": {
+      "type": "string",
+      "title": "Nome do aluno"
+    },
+    "image_url": {
+      "type": "string",
+      "title": "Imagem do desenho"
+    },
+    "ai_suggestion": {
+      "type": "string",
+      "title": "Sugest\u00e3o do site"
+    },
+    "teacher_note": {
+      "type": "string",
+      "title": "Interpreta\u00e7\u00e3o da professora"
+    },
+    "student_comment": {
+      "type": "string",
+      "title": "Fala da crian\u00e7a sobre o desenho"
+    }
+  },
+  "required": [
+    "student_id",
+    "image_url"
+  ]
+}

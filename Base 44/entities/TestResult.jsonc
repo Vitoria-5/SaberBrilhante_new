@@ -1,0 +1,46 @@
+{
+  "name": "TestResult",
+  "type": "object",
+  "properties": {
+    "student_id": {
+      "type": "string",
+      "title": "Aluno"
+    },
+    "student_name": {
+      "type": "string",
+      "title": "Nome do aluno"
+    },
+    "test_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Data do teste"
+    },
+    "phase_result": {
+      "type": "string",
+      "enum": [
+        "garatuja",
+        "pre_silabica",
+        "silabica",
+        "silabico_alfabetica",
+        "alfabetica"
+      ],
+      "title": "Fase resultante"
+    },
+    "score": {
+      "type": "number",
+      "title": "Pontua\u00e7\u00e3o (%)"
+    },
+    "summary": {
+      "type": "string",
+      "title": "Resumo"
+    },
+    "details": {
+      "type": "string",
+      "title": "Detalhes por categoria"
+    }
+  },
+  "required": [
+    "student_id",
+    "phase_result"
+  ]
+}

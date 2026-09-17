@@ -1,0 +1,84 @@
+{
+  "name": "Student",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "title": "Nome"
+    },
+    "birth_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Data de nascimento"
+    },
+    "password": {
+      "type": "string",
+      "title": "Senha do aluno"
+    },
+    "phase": {
+      "type": "string",
+      "enum": [
+        "garatuja",
+        "pre_silabica",
+        "silabica",
+        "silabico_alfabetica",
+        "alfabetica"
+      ],
+      "default": "garatuja",
+      "title": "Fase atual"
+    },
+    "suggested_phase": {
+      "type": "string",
+      "enum": [
+        "garatuja",
+        "pre_silabica",
+        "silabica",
+        "silabico_alfabetica",
+        "alfabetica"
+      ],
+      "default": "garatuja",
+      "title": "Fase sugerida pelo app"
+    },
+    "audio_blocked": {
+      "type": "boolean",
+      "default": false,
+      "title": "\u00c1udio bloqueado"
+    },
+    "last_test_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Data do \u00faltimo teste"
+    },
+    "feeling": {
+      "type": "string",
+      "title": "Como estou me sentindo"
+    },
+    "feeling_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Data do sentimento"
+    },
+    "reforco_message": {
+      "type": "string",
+      "title": "Recadinho de refor\u00e7o da professora"
+    },
+    "reforco_game": {
+      "type": "string",
+      "title": "Jogo sugerido para refor\u00e7o"
+    },
+    "test_requested": {
+      "type": "boolean",
+      "default": false,
+      "title": "Teste solicitado pela professora"
+    },
+    "test_request_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Data da solicita\u00e7\u00e3o de teste"
+    }
+  },
+  "required": [
+    "name",
+    "birth_date"
+  ]
+}

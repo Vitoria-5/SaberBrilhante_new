@@ -1,0 +1,31 @@
+{
+  "name": "GameError",
+  "type": "object",
+  "properties": {
+    "student_id": {
+      "type": "string",
+      "title": "Aluno"
+    },
+    "student_name": {
+      "type": "string",
+      "title": "Nome do aluno"
+    },
+    "game": {
+      "type": "string",
+      "title": "Jogo"
+    },
+    "exercise": {
+      "type": "string",
+      "title": "Exerc\u00edcio"
+    },
+    "errors": {
+      "type": "number",
+      "title": "Erros"
+    }
+  },
+  "required": [
+    "student_id",
+    "game",
+    "exercise"
+  ]
+}
