@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStudent } from '@/lib/StudentContext';
-import { base44 } from '@/api/base44Client';
 import { PHASE_MAP } from '@/lib/phases';
 import { Button } from '@/components/ui/button';
 import AudioButton from '@/components/AudioButton';
@@ -40,7 +39,7 @@ const GAMES = [
 ];
 
 export default function GamesHub() {
-  const { student, setStudent } = useStudent();
+  const { student } = useStudent();
   const navigate = useNavigate();
   const [active, setActive] = useState(null);
   const [round, setRound] = useState(0);
@@ -50,20 +49,14 @@ export default function GamesHub() {
   }, [student, navigate]);
 
   if (!student) return null;
-  const ph = PHASE_MAP[student.phase] || PHASE_MAP.garatuja;
-  const available = GAMES.filter((g) => g.phases.includes(student.phase));
-  const geral = available.filter((g) => g.section !== 'silabas');
-  const silabas = available.filter((g) => g.section === 'silabas');
-
-  const startRequestedTest = async () => {
-    try {
-      await base44.entities.Student.update(student.id, { test_requested: false });
-      setStudent({ ...student, test_requested: false });
-    } catch {
-      /* ignore */
-    }
-    navigate('/teste');
-  };
+  
+  const currentPhaseKey = student.phase || 'garatuja';
+  const ph = PHASE_MAP[currentPhaseKey] || PHASE_MAP.garatuja;
+  
+  // FILTRADO DE VERDADE: Mostra apenas os jogos compatíveis com a fase do aluno!
+  const availableGAMES = GAMES.filter((g) => g.phases.includes(currentPhaseKey));
+  const geral = availableGAMES.filter((g) => g.section !== 'silabas');
+  const silabas = availableGAMES.filter((g) => g.section === 'silabas');
 
   if (active) {
     const Comp = active.Comp;
@@ -72,7 +65,7 @@ export default function GamesHub() {
         <button onClick={() => setActive(null)} className="inline-flex items-center gap-1.5 text-violet-700 font-semibold text-sm hover:underline">
           <ArrowLeft className="w-4 h-4" /> Voltar aos jogos
         </button>
-        <Comp key={`${active.key}-${round}`} phase={student.phase} onPlayAgain={() => setRound((r) => r + 1)} onFinish={() => { setActive(null); setRound(0); }} />
+        <Comp key={`${active.key}-${round}`} phase={currentPhaseKey} onPlayAgain={() => setRound((r) => r + 1)} onFinish={() => { setActive(null); setRound(0); }} />
       </div>
     );
   }
@@ -93,85 +86,44 @@ export default function GamesHub() {
         </div>
       </div>
 
-      {student.test_requested && (
-        <div className="rounded-3xl bg-sky-50 border-2 border-sky-300 p-5 flex items-center gap-4 flex-wrap">
-          <div className="text-4xl">📝</div>
-          <div className="flex-1 min-w-[200px]">
-            <p className="font-extrabold text-sky-800">A professora solicitou um novo teste! 🌟</p>
-            <p className="text-sky-700 text-sm">Vamos ver como você está indo? É rápido e divertido!</p>
-          </div>
-          <button onClick={startRequestedTest} className="px-4 py-2 rounded-full bg-sky-500 text-white font-semibold text-sm shadow hover:bg-sky-600">
-            Fazer o teste
-          </button>
-        </div>
-      )}
-
-      {student.reforco_message && (
-        <div className="rounded-3xl bg-amber-50 border-2 border-amber-200 p-5 flex items-center gap-4 flex-wrap">
-          <div className="text-4xl">💌</div>
-          <div className="flex-1 min-w-[200px]">
-            <p className="font-extrabold text-amber-800">Recadinho da professora 💛</p>
-            <p className="text-amber-700 text-sm">{student.reforco_message}</p>
-          </div>
-          {student.reforco_game &&
-            (() => {
-              const g = GAMES.find((x) => x.key === student.reforco_game);
-              if (!g) return null;
-              return (
-                <button onClick={() => { setRound(0); setActive(g); }} className="px-4 py-2 rounded-full bg-amber-500 text-white font-semibold text-sm shadow hover:bg-amber-600">
-                  {g.emoji} Jogar {g.name}
-                </button>
-              );
-            })()}
-        </div>
-      )}
-
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {geral.map((g) => (
-          <button
-            key={g.key}
-            onClick={() => { setRound(0); setActive(g); }}
-            className={cn('text-left rounded-3xl p-5 border border-white shadow-md hover:shadow-xl transition bg-gradient-to-br', g.color)}
-          >
-            <div className="text-4xl mb-2">{g.emoji}</div>
-            <h3 className="font-extrabold text-slate-800">{g.name}</h3>
-            <p className="text-sm text-slate-600">{g.desc}</p>
-            <span className="inline-flex items-center gap-1 mt-3 text-violet-700 font-semibold text-sm">
-              <Gamepad2 className="w-4 h-4" /> Jogar
-            </span>
-          </button>
-        ))}
-      </div>
-
-      {silabas.length > 0 && (
+      {geral.length > 0 && (
         <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">🔤</span>
-            <h2 className="text-lg font-extrabold text-violet-800">Jogos de Sílabas e Letras</h2>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {silabas.map((g) => (
-              <button
-                key={g.key}
-                onClick={() => { setRound(0); setActive(g); }}
-                className={cn('text-left rounded-3xl p-5 border border-white shadow-md hover:shadow-xl transition bg-gradient-to-br', g.color)}
-              >
-                <div className="text-4xl mb-2">{g.emoji}</div>
-                <h3 className="font-extrabold text-slate-800">{g.name}</h3>
-                <p className="text-sm text-slate-600">{g.desc}</p>
-                <span className="inline-flex items-center gap-1 mt-3 text-violet-700 font-semibold text-sm">
-                  <Gamepad2 className="w-4 h-4" /> Jogar
-                </span>
+          <h2 className="text-xl font-extrabold text-violet-800 flex items-center gap-2">
+            <Gamepad2 className="w-5 h-5 text-violet-600" /> Jogos Divertidos
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {geral.map((g) => (
+              <button key={g.key} onClick={() => { setRound(0); setActive(g); }} className={cn("p-5 rounded-3xl border-2 border-transparent text-left transition text-slate-800 flex flex-col gap-2 shadow-sm bg-gradient-to-br hover:scale-[1.02] hover:shadow-md", g.color || "from-slate-50 to-slate-100")}>
+                <div className="text-3xl">{g.emoji}</div>
+                <div>
+                  <h3 className="font-extrabold text-lg text-slate-800">{g.name}</h3>
+                  <p className="text-sm text-slate-600 leading-tight mt-0.5">{g.desc}</p>
+                </div>
               </button>
             ))}
           </div>
         </div>
       )}
 
-      {available.length === 0 && (
-        <div className="text-center text-muted-foreground py-10">
-          Nenhum jogo disponível para esta fase ainda. Faça o teste para descobrir sua fase!
+      {silabas.length > 0 && (
+        <div className="space-y-3 pt-4">
+          <h2 className="text-xl font-extrabold text-violet-800 flex items-center gap-2">🔤 Atividades com Sílabas e Palavras</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {silabas.map((g) => (
+              <button key={g.key} onClick={() => { setRound(0); setActive(g); }} className={cn("p-5 rounded-3xl border-2 border-transparent text-left transition text-slate-800 flex flex-col gap-2 shadow-sm bg-gradient-to-br hover:scale-[1.02] hover:shadow-md", g.color || "from-slate-50 to-slate-100")}>
+                <div className="text-3xl">{g.emoji}</div>
+                <div>
+                  <h3 className="font-extrabold text-lg text-slate-800">{g.name}</h3>
+                  <p className="text-sm text-slate-600 leading-tight mt-0.5">{g.desc}</p>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
+      )}
+
+      {geral.length === 0 && silabas.length === 0 && (
+        <p className="text-center text-muted-foreground py-8">Nenhum jogo disponível para esta fase ainda.</p>
       )}
     </div>
   );

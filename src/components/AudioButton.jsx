@@ -1,64 +1,46 @@
-import { Volume2, VolumeX, Square } from 'lucide-react';
-import { useStudent } from '@/lib/StudentContext';
-import { cn } from '@/lib/utils';
+import React, { useState } from 'react';
+import { Volume2, VolumeX } from 'lucide-react';
 
-export default function AudioButton({ text, className, size = 'md' }) {
-  const { speak, stop, isSpeaking, audioBlocked, muted, toggleMute } = useStudent();
-  const iconSize = size === 'sm' ? 'w-4 h-4' : 'w-5 h-5';
-  const stopSize = size === 'sm' ? 'w-3 h-3 fill-current' : 'w-4 h-4 fill-current';
+export default function AudioButton({ text, size = 'md' }) {
+  const [playing, setPlaying] = useState(false);
 
-  const play = () => {
-    if (audioBlocked || muted) return;
-    if (isSpeaking) stop();
-    else speak(text);
+  const speak = () => {
+    if ('speechSynthesis' in window) {
+      // Se já estiver falando, para a voz
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+        setPlaying(false);
+        return;
+      }
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'pt-BR'; // Força a falar em português do Brasil!
+      utterance.rate = 1.0;     // Velocidade normal da fala
+
+      utterance.onstart = () => setPlaying(true);
+      utterance.onend = () => setPlaying(false);
+      utterance.onerror = () => setPlaying(false);
+
+      window.speechSynthesis.speak(utterance);
+    } else {
+      alert("Seu navegador não suporta áudio de leitura automática. 😢");
+    }
   };
 
   return (
-    <div className={cn('inline-flex items-center gap-1', className)}>
-      <button
-        type="button"
-        onClick={play}
-        disabled={audioBlocked || muted}
-        title={muted ? 'Som desligado' : isSpeaking ? 'Parar' : 'Ouvir novamente'}
-        aria-label="Ouvir"
-        className={cn(
-          'inline-flex items-center justify-center rounded-full transition shadow-sm',
-          size === 'sm' ? 'w-8 h-8' : 'w-10 h-10',
-          audioBlocked
-            ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
-            : muted
-            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-            : isSpeaking
-            ? 'bg-red-100 text-red-600 hover:bg-red-200 active:scale-95'
-            : 'bg-violet-100 text-violet-700 hover:bg-violet-200 active:scale-95'
-        )}
-      >
-        {audioBlocked ? (
-          <VolumeX className={iconSize} />
-        ) : isSpeaking ? (
-          <Square className={stopSize} />
-        ) : (
-          <Volume2 className={iconSize} />
-        )}
-      </button>
-      <button
-        type="button"
-        onClick={toggleMute}
-        disabled={audioBlocked}
-        title={muted ? 'Ligar o som' : 'Desligar o som'}
-        aria-label="Ligar ou desligar o som"
-        className={cn(
-          'inline-flex items-center justify-center rounded-full transition',
-          size === 'sm' ? 'w-7 h-7' : 'w-8 h-8',
-          audioBlocked
-            ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
-            : muted
-            ? 'bg-red-100 text-red-600 hover:bg-red-200 active:scale-95'
-            : 'bg-violet-50 text-violet-500 hover:bg-violet-100 active:scale-95'
-        )}
-      >
-        {muted ? <Volume2 className={iconSize} /> : <VolumeX className={iconSize} />}
-      </button>
-    </div>
+    <button
+      type="button"
+      onClick={speak}
+      className={`p-2 rounded-full transition shadow-sm ${
+        playing ? 'bg-amber-500 text-white animate-pulse' : 'bg-violet-100 text-violet-700 hover:bg-violet-200'
+      } ${size === 'sm' ? 'p-1.5' : 'p-2'}`}
+      title="Ouvir áudio"
+    >
+      {playing ? (
+        <VolumeX className={size === 'sm' ? 'w-4 h-4' : 'w-5 h-5'} />
+      ) : (
+        <Volume2 className={size === 'sm' ? 'w-4 h-4' : 'w-5 h-5'} />
+      )}
+    </button>
   );
 }
