@@ -1,124 +1,172 @@
 import { useState, useEffect } from 'react';
-import { Volume2, Square, ArrowRight, Heart } from 'lucide-react';
 import { useStudent } from '@/lib/StudentContext';
 import { Button } from '@/components/ui/button';
+import { Volume2, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const WRITING_PHASES = ['silabico_alfabetica', 'alfabetica'];
+// Lista oficial de perguntas sobre emoções extraídas do seu projeto
+const EMOTION_QUESTIONS = [
+  { prompt: 'Mostre a carinha feliz!', emoji: '😄', options: [{ label: 'Feliz', emoji: '😄' }, { label: 'Triste', emoji: '😢' }, { label: 'Bravo', emoji: '😠' }], correct: 0 },
+  { prompt: 'Quando a gente leva um susto, como fica?', emoji: '😱', options: [{ label: 'Com medo', emoji: '😱' }, { label: 'Feliz', emoji: '😄' }, { label: 'Com sono', emoji: '😴' }], correct: 0 },
+  { prompt: 'Se a criança ganha um presente, como ela fica?', emoji: '🎁', options: [{ label: 'Feliz', emoji: '😄' }, { label: 'Brava', emoji: '😠' }, { label: 'Com medo', emoji: '😱' }], correct: 0 }
+];
 
-export default function EmotionGame({ questions, onFinish, onPlayAgain, phase }) {
-  const { speak, stop, isSpeaking, audioBlocked } = useStudent();
-  const [idx, setIdx] = useState(0);
-  const [picked, setPicked] = useState(null);
-  const [reason, setReason] = useState('');
+export default function EmotionsGame({ onFinish }) {
+  const { student, speak } = useStudent();
+  const [currentStep, setCurrentStep] = useState(0); // Controla qual pergunta está passando
+  const [textFeeling, setTextFeeling] = useState(''); // Guarda o texto digitado pela criança
+  const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
-  const canWrite = WRITING_PHASES.includes(phase);
+  const [answers, setAnswers] = useState([]); // Guarda as respostas das carinhas
 
-  const q = questions[idx];
+  const isAudioBlocked = student?.audio_blocked || false;
 
   useEffect(() => {
-    setPicked(null);
-    setReason('');
-    if (q) speak(`${q.prompt}. Escolha a carinha que combina com você.`);
+    if (!isAudioBlocked) {
+      speak('Como você está hoje? Digite na caixinha e responda às perguntas sobre as carinhas.');
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idx]);
+  }, []);
+  // Guarda a resposta da pergunta atual e passa para a próxima ou vai para a escrita
+  const handleSelectOption = (option) => {
+    const updatedAnswers = [...answers, `${EMOTION_QUESTIONS[currentStep].emoji} ${option.label}`];
+    setAnswers(updatedAnswers);
+
+    if (!isAudioBlocked) {
+      if (option.label === 'Feliz' || option.label === 'Com medo') {
+        speak('Muito bem! Você acertou!');
+      } else {
+        speak('Obrigado por responder!');
+      }
+    }
+
+    // Avança para o próximo passo (pergunta ou escrita de texto)
+    setCurrentStep((prev) => prev + 1);
+  };
+
+  // Junta as respostas das carinhas com o texto digitado e manda para a professora
+  const handleSaveAll = async () => {
+    setSaving(true);
+    try {
+      const currentData = localStorage.getItem('saber_brilhante_alunos');
+      let list = currentData ? JSON.parse(currentData) : [];
+
+      // Monta o resumo detalhado do humor e respostas da criança
+      const carinhasRespondidas = answers.join(', ');
+      const textoDigitado = textFeeling.trim() ? `• Relato: "${textFeeling.trim()}"` : '';
+      const resumoFinal = `Respostas: [${carinhasRespondidas}] ${textoDigitado}`;
+
+      list = list.map((s) => {
+        if (s.id === student.id) {
+          return {
+            ...s,
+            feeling: resumoFinal
+          };
+        }
+        return s;
+      });
+
+      localStorage.setItem('saber_brilhante_alunos', JSON.stringify(list));
+      setDone(true);
+
+      if (!isAudioBlocked) {
+        speak('Que maravilhoso! Tudo o que você escreveu e respondeu já foi enviado para a sua professora!');
+      }
+    } catch (error) {
+      console.error("Erro ao salvar sentimentos completos:", error);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (done) {
     return (
       <div className="flex flex-col items-center justify-center text-center py-16 gap-4">
-        <div className="text-6xl">💛</div>
-        <h2 className="text-2xl font-extrabold text-violet-700">Obrigada por compartilhar!</h2>
-        <p className="text-muted-foreground">Todos os sentimentos são importantes. Você arrasou!</p>
-        <div className="flex flex-wrap gap-2 justify-center">
-          {onPlayAgain && <Button variant="outline" onClick={onPlayAgain}>Jogar de novo 🎲</Button>}
-          <Button onClick={onFinish} className="bg-violet-600 hover:bg-violet-700">Voltar aos jogos</Button>
+        <div className="text-6xl">🌟</div>
+        <h2 className="text-2xl font-extrabold text-violet-700">Atividade Concluída!</h2>
+        <p className="text-muted-foreground">Suas carinhas e seu texto foram enviados para o painel da professora.</p>
+        <Button onClick={onFinish} className="bg-violet-600 hover:bg-violet-700 mt-2">
+          Voltar aos jogos
+        </Button>
+      </div>
+    );
+  }
+  // Se ainda houver perguntas na lista, mostra o jogo de carinhas
+  if (currentStep < EMOTION_QUESTIONS.length) {
+    const question = EMOTION_QUESTIONS[currentStep];
+    return (
+      <div className="max-w-md mx-auto">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-xl font-extrabold text-violet-800">Carinhas e Sentimentos {question.emoji}</h2>
+            <p className="text-sm text-muted-foreground">{question.prompt}</p>
+          </div>
+          <button 
+            onClick={() => { if (!isAudioBlocked) speak(question.prompt); }}
+            disabled={isAudioBlocked}
+            className={cn(
+              "w-11 h-11 rounded-full flex items-center justify-center transition",
+              isAudioBlocked ? "bg-slate-100 text-slate-400 cursor-not-allowed" : "bg-violet-100 text-violet-700 hover:bg-violet-200"
+            )}
+          >
+            <Volume2 className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="bg-white rounded-3xl shadow-lg p-6 border border-violet-100 space-y-4">
+          <div className="grid grid-cols-1 gap-3">
+            {question.options.map((option, idx) => (
+              <button
+                key={idx}
+                onClick={() => handleSelectOption(option)}
+                className="p-4 rounded-2xl border-2 border-violet-100 hover:border-violet-500 font-bold transition transform hover:scale-[1.02] active:scale-[0.98] shadow-sm flex items-center gap-4 text-left text-slate-700 hover:bg-violet-50"
+              >
+                <span className="text-4xl">{option.emoji}</span>
+                <span className="text-lg">{option.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     );
   }
-  if (!q) return null;
 
-  const pick = (o) => {
-    setPicked(o);
-    speak(`Você escolheu ${o.label}. ${canWrite ? 'Por que você escolheu essa carinha?' : 'Você pode contar para um adulto por que escolheu essa carinha.'}`);
-  };
-
-  const next = () => {
-    speak('Que legal você compartilhar como se sente!');
-    if (idx + 1 >= questions.length) setDone(true);
-    else setIdx(idx + 1);
-  };
-
+  // Tela final após as perguntas: Caixa de texto para digitação da criança
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="flex items-center justify-between mb-3">
+    <div className="max-w-md mx-auto">
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-xl font-extrabold text-violet-800">Carinhas e Sentimentos 💛</h2>
-          <p className="text-sm text-muted-foreground">Não existe sentimento certo ou errado!</p>
+          <h2 className="text-xl font-extrabold text-violet-800">Agora conte para mim 📝</h2>
+          <p className="text-sm text-muted-foreground">Escreva na caixinha como você está se sentindo hoje!</p>
         </div>
-        <button onClick={() => (isSpeaking ? stop() : speak(`${q.prompt}. Escolha a carinha que combina com você.`))} disabled={audioBlocked} className={cn('w-11 h-11 rounded-full flex items-center justify-center', audioBlocked ? 'bg-gray-100 text-gray-300' : isSpeaking ? 'bg-red-100 text-red-600 hover:bg-red-200' : 'bg-violet-100 text-violet-700 hover:bg-violet-200')}>
-          {isSpeaking ? <Square className="w-4 h-4 fill-current" /> : <Volume2 className="w-5 h-5" />}
+        <button 
+          onClick={() => { if (!isAudioBlocked) speak('Escreva na caixinha como você está se sentindo hoje!'); }}
+          disabled={isAudioBlocked}
+          className={cn(
+            "w-11 h-11 rounded-full flex items-center justify-center transition",
+            isAudioBlocked ? "bg-slate-100 text-slate-400 cursor-not-allowed" : "bg-violet-100 text-violet-700 hover:bg-violet-200"
+          )}
+        >
+          <Volume2 className="w-5 h-5" />
         </button>
       </div>
 
-      <div className="flex gap-1.5 mb-4">
-        {questions.map((_, i) => (
-          <div key={i} className={cn('h-2 flex-1 rounded-full', i < idx ? 'bg-violet-400' : i === idx ? 'bg-violet-600' : 'bg-violet-100')} />
-        ))}
-      </div>
+      <div className="bg-white rounded-3xl shadow-lg p-6 border border-violet-100 space-y-4">
+        <textarea
+          value={textFeeling}
+          onChange={(e) => setTextFeeling(e.target.value)}
+          placeholder="Estou muito feliz hoje porque ganhei um jogo novo e brinquei na escola..."
+          rows={4}
+          className="w-full px-4 py-3 rounded-2xl border-2 border-violet-100 focus:border-violet-500 outline-none text-slate-700 resize-none"
+        />
 
-      <div className="bg-white rounded-3xl shadow-lg p-6 border border-violet-100">
-        <div className="flex items-center gap-3 mb-5">
-          {q.emoji && <span className="text-4xl">{q.emoji}</span>}
-          <h3 className="text-lg font-bold text-slate-800">{q.prompt}</h3>
-        </div>
-
-        {!picked && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {q.options.map((o) => (
-              <button
-                key={o.label}
-                onClick={() => pick(o)}
-                className="flex flex-col items-center gap-1 p-4 rounded-2xl border-2 border-violet-100 bg-violet-50 hover:bg-violet-100 hover:border-violet-300 transition"
-              >
-                <span className="text-4xl">{o.emoji}</span>
-                <span className="font-semibold text-slate-700">{o.label}</span>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {picked && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 p-3 rounded-2xl bg-violet-50 border-2 border-violet-200">
-              <span className="text-4xl">{picked.emoji}</span>
-              <span className="font-bold text-violet-800 text-lg">Você está: {picked.label}</span>
-            </div>
-            {canWrite ? (
-              <div>
-                <p className="font-semibold text-violet-800 mb-2 flex items-center gap-2">
-                  <Heart className="w-4 h-4 text-pink-400" /> Por que você escolheu essa carinha?
-                </p>
-                <textarea
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  placeholder="Pode contar com suas palavras..."
-                  rows={3}
-                  className="w-full px-4 py-3 rounded-xl border-2 border-violet-100 focus:border-violet-500 outline-none resize-none"
-                />
-              </div>
-            ) : (
-              <div className="flex items-center gap-3 p-3 rounded-2xl bg-amber-50 border border-amber-100">
-                <Heart className="w-5 h-5 text-pink-400 shrink-0" />
-                <p className="text-sm text-amber-800 flex-1">Você pode contar para um adulto por que escolheu essa carinha. 💛</p>
-                <button onClick={() => speak(`Eu estou ${picked.label}.`)} disabled={audioBlocked} className="px-3 py-2 rounded-full bg-violet-600 text-white text-xs font-semibold shrink-0">Ouvir</button>
-              </div>
-            )}
-            <Button className="bg-violet-600 hover:bg-violet-700" onClick={next}>
-              {idx + 1 >= questions.length ? 'Terminar' : 'Próximo'} <ArrowRight className="w-4 h-4 ml-1" />
-            </Button>
-          </div>
-        )}
+        <Button 
+          onClick={handleSaveAll} 
+          disabled={saving} 
+          className="w-full bg-violet-600 hover:bg-violet-700 font-bold h-12 rounded-2xl text-base"
+        >
+          <Send className="w-4 h-4 mr-2" /> {saving ? 'Enviando...' : 'Enviar para a Professora'}
+        </Button>
       </div>
     </div>
   );

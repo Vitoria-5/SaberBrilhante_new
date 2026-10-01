@@ -1,60 +1,74 @@
-import { Toaster } from "@/components/ui/toaster"
-import { QueryClientProvider } from '@tanstack/react-query'
-import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import PageNotFound from '@/lib/PageNotFound';
-import { AuthProvider } from '@/lib/AuthContext';
-import ScrollToTop from '@/components/ScrollToTop';
-import Layout from '@/components/Layout';
-import { StudentProvider } from '@/lib/StudentContext';
-import Login from '@/pages/Login';
-import Register from '@/pages/Register';
-import ForgotPassword from '@/pages/ForgotPassword';
-import ResetPassword from '@/pages/ResetPassword';
-import Home from '@/pages/Home';
-import TeacherDashboard from '@/pages/TeacherDashboard';
-import StudentEntry from '@/pages/StudentEntry';
-import AdaptiveTest from '@/pages/AdaptiveTest';
-import GamesHub from '@/pages/GamesHub';
-import SobreMim from '@/pages/SobreMim';
+import { useStudent } from './main.jsx';
+import StudentEntry from './pages/StudentEntry.jsx';
+import GamesHub from './pages/GamesHub.jsx';
+import TeacherDashboard from './pages/TeacherDashboard.jsx';
+import { GraduationCap, Gamepad2, LogOut } from 'lucide-react';
+import { useState } from 'react';
 
-const AuthenticatedApp = () => {
+export default function App() {
+  const { student, exitChildMode } = useStudent() || {};
+  const [view, setView] = useState('aluno');
+
   return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      
-      {/* O Layout e a Home (tela dos botões) agora estão livres de travas */}
-      <Route element={<Layout />}>
-        <Route path="/" element={<Home />} />
-        <Route path="/professora" element={<TeacherDashboard />} />
-        <Route path="/aluno" element={<StudentEntry />} />
-        <Route path="/teste" element={<AdaptiveTest />} />
-        <Route path="/jogos" element={<GamesHub />} />
-        <Route path="/sobre-mim" element={<SobreMim />} />
-      </Route>
-      
-      <Route path="*" element={<PageNotFound />} />
-    </Routes>
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans antialiased text-slate-900">
+      <header className="bg-white border-b border-violet-100 sticky top-0 z-40 shadow-sm">
+        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+          <button 
+            onClick={() => setView('aluno')} 
+            className="flex items-center gap-2 bg-transparent border-none cursor-pointer text-left"
+          >
+            <div className="w-9 h-9 rounded-xl bg-violet-600 text-white flex items-center justify-center font-black text-lg">
+              A
+            </div>
+            <span className="font-black text-xl tracking-tight text-violet-700">
+              AVENTURA DO SABER
+            </span>
+          </button>
+
+          <nav className="flex items-center gap-3">
+            <button
+              onClick={() => setView('aluno')}
+              className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5 cursor-pointer border-none ${
+                view === 'aluno' ? 'bg-violet-600 text-white' : 'bg-transparent text-slate-600'
+              }`}
+            >
+              <Gamepad2 className="w-4 h-4" /> JOGAR
+            </button>
+
+            <button
+              onClick={() => setView('professor')}
+              className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5 cursor-pointer border-none ${
+                view === 'professor' ? 'bg-violet-600 text-white' : 'bg-transparent text-slate-600'
+              }`}
+            >
+              <GraduationCap className="w-4 h-4" /> PROFESSORA
+            </button>
+
+            {student && (
+              <button 
+                onClick={exitChildMode}
+                className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5 cursor-pointer border border-red-200 text-red-600 bg-white"
+              >
+                <LogOut className="w-4 h-4" /> SAIR ({student.name})
+              </button>
+            )}
+          </nav>
+        </div>
+      </header>
+
+      <main className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+        {view === 'professor' ? (
+          <TeacherDashboard />
+        ) : student ? (
+          <GamesHub />
+        ) : (
+          <StudentEntry />
+        )}
+      </main>
+
+      <footer className="py-4 text-center text-xs text-slate-400 border-t bg-white">
+        &copy; {new Date().getFullYear()} Aventura do Saber
+      </footer>
+    </div>
   );
-};
-
-function App() {
-  return (
-    <AuthProvider>
-      <QueryClientProvider client={queryClientInstance}>
-        <Router>
-          <ScrollToTop />
-          <StudentProvider>
-            <AuthenticatedApp />
-          </StudentProvider>
-        </Router>
-        <Toaster />
-      </QueryClientProvider>
-    </AuthProvider>
-  )
 }
-
-export default App

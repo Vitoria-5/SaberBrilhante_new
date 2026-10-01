@@ -53,10 +53,13 @@ function buildRounds() {
     }
     if (correctPool.length === 0) continue;
     const correct = correctPool[Math.floor(Math.random() * correctPool.length)];
+    
+    // REGRA DE GAMIFICAÇÃO AJUSTADA: Sorteia 3 opções incorretas para renderizar 4 alternativas na tela
     const distractors = shuffle(
       ITEMS.filter((x) => x.name !== correct.name && (mode === 'letra' ? x.firstLetter !== target : x.firstSyllable !== target))
-    ).slice(0, 2);
-    if (distractors.length < 2) continue;
+    ).slice(0, 3);
+    
+    if (distractors.length < 3) continue;
     const options = shuffle([correct, ...distractors]);
     rounds.push({ mode, target, correct, options });
   }
@@ -159,7 +162,8 @@ export default function SyllableGame({ onFinish, onPlayAgain }) {
           <p className="text-3xl font-extrabold text-violet-700">{promptText}</p>
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
+        {/* LAYOUT GRID DE 4 COLUNAS: Garante o alinhamento perfeito das 4 opções */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {r.options.map((o) => {
             const showCorrect = (solved || revealed) && o.name === r.correct.name;
             const showWrong = picked && o.name === picked.name && picked.name !== r.correct.name;
@@ -179,9 +183,9 @@ export default function SyllableGame({ onFinish, onPlayAgain }) {
                 )}
               >
                 <span className="text-5xl">{o.emoji}</span>
-                <span className="font-semibold text-slate-700">{o.name}</span>
-                {showCorrect && <Check className="w-4 h-4 text-green-600" />}
-                {showWrong && <X className="w-4 h-4 text-red-600" />}
+                <span className="font-semibold text-slate-700 text-sm">{o.name}</span>
+                {showCorrect && <Check className="w-4 h-4 text-green-600 mt-1" />}
+                {showWrong && <X className="w-4 h-4 text-red-600 mt-1" />}
               </button>
             );
           })}
